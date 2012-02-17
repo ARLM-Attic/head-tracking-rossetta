@@ -104,7 +104,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     int textLineDepth = 10;
     
-    int[] textureIDs = new int[3];  // 0 - target texture, 1 - background texture, 2 - webcamtexture
+    static int[] textureIDs = new int[3];  // 0 - target texture, 1 - background texture, 2 - webcamtexture
     
     FloatBuffer webcamBuffer, webcamTexBuffer, targetsBuffer, targetsTexBuffer, linesBuffer, gridBuffer, backgroundBuffer, backgroundTexBuffer;
     
@@ -139,6 +139,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	byte[] glCameraFrame;
 	int[] cameraTexture;
 
+	static GL10 gl10;
+	
 	BooleanLock newFrameLock=new BooleanLock(false);
 	
 	public void handlePressLeft()
@@ -192,6 +194,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	    if (screenAspect == 0)//only override if it's emtpy
 	        screenAspect = m_dwWidth / (float)m_dwHeight;
 	    		
+	    gl10 = gl;
+	    
 	     // Create font
 	     fnt = new TexFont(context,gl);
 	     
@@ -236,7 +240,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	 // Load Textures
 	    loadTexture(gl, context, 0);    // Load image into Texture (NEW)
 	    loadTexture(gl, context, 1);
-	    loadTexture(gl, context, 2);
+	   // loadTexture(gl, context, 2);
 	    
 	}
 	
@@ -255,7 +259,17 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	  
 	      // Construct an input stream to texture image "res\drawable\nehe.png"
 	      // Choose different image accordinmg to loaded texture
-	      InputStream istream = context.getResources().openRawResource(R.drawable.icon);
+	      InputStream istream = null;
+	      
+	      if (index == 0)
+	      {
+	    	  istream = context.getResources().openRawResource(R.drawable.target);
+	      }
+	      else if (index == 1)
+	      {
+	    	  istream = context.getResources().openRawResource(R.drawable.stad_2);
+	      }
+	      
 	      Bitmap bitmap;
 	      try {
 	         // Read and decode input as bitmap
@@ -271,8 +285,52 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	      bitmap.recycle();
 	   }
 	   
+       static public void ReloadWebcamTexture(Bitmap bmp)
+       {
+           if (isRendering)
+               return;
+
+           isLoadingWebcamTexture = true;
+
+		   GL11 gl11 = (GL11)gl10;
+		         
+           // We generate the texture once and then re-bind to it on each texture change
+           if (textureIDs[2] == 0)
+           {
+     	      gl11.glGenTextures(1, textureIDs, 2); // Generate texture-ID array
+
+    	      gl11.glBindTexture(GL11.GL_TEXTURE_2D, textureIDs[2]);   // Bind to texture ID
+           }
+           else
+           {
+        	   gl11.glBindTexture(GL11.GL_TEXTURE_2D, textureIDs[2]);
+           }
+
+          gl11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_GENERATE_MIPMAP, GL11.GL_TRUE);
+ 	      gl11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+ 	      gl11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+ 	      
+
+ 	      GLUtils.texImage2D(GL11.GL_TEXTURE_2D, 0, bmp, 0);
+
+           isLoadingWebcamTexture = false;
+       }
+       
     private void SetupMatrices(GL10 gl)
     {
+    	gl.glViewport(0,0,m_dwWidth,m_dwHeight);
+    	
+        // Set up our view matrix. A view matrix can be defined given an eye point,
+        // a point to lookat, and a direction for which way is up. Here, we set the
+        // eye five units back along the z-axis and up three units, look at the
+        // origin, and define "up" to be in the y-direction.
+		// device.Transform.View = Matrix.LookAtLH(new Vector3(mouseCursor.X, mouseCursor.Y, -5.0f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 1.0f, 0.0f));
+		gl.glMatrixMode(GL10.GL_MODELVIEW);
+		gl.glLoadIdentity();
+		
+		GLU.gluLookAt(gl, headX, headY, headDist, headX, headY, 0, 0.0f, 1.0f, 0.0f);
+		//gl.glNormal3f(0,0,1);
+		
         // For the projection matrix, we set up a perspective transform (which
         // transforms geometry from 3D view space to 2D viewport space, with
         // a perspective divide making objects smaller in the distance). To build
@@ -287,7 +345,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 		
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
-		gl.glViewport(0,0,m_dwWidth,m_dwHeight);
+		
 		//GLU.gluPerspective(gl, 45.0f, ((float)width)/height, 1f, 100f);
 		
 		gl.glFrustumf(nearPlane * ( -.5f * screenAspect - headX) / headDist,
@@ -295,20 +353,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 					                nearPlane * (-.5f - headY) / headDist,
 					                nearPlane * (.5f - headY) / headDist,
 					                nearPlane, farPlane);
-		
-
-        // Set up our view matrix. A view matrix can be defined given an eye point,
-        // a point to lookat, and a direction for which way is up. Here, we set the
-        // eye five units back along the z-axis and up three units, look at the
-        // origin, and define "up" to be in the y-direction.
-		// device.Transform.View = Matrix.LookAtLH(new Vector3(mouseCursor.X, mouseCursor.Y, -5.0f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 1.0f, 0.0f));
-		gl.glMatrixMode(GL10.GL_MODELVIEW);
-		gl.glLoadIdentity();
-		GLU.gluLookAt(gl, headX, headY, headDist, headX, headY, 0, 0.0f, 1.0f, 0.0f);
-		//gl.glNormal3f(0,0,1);
     }
     
-
+    
     @Override
 	public void onDrawFrame(GL10 gl) {
 			//if (!running) return;
@@ -367,7 +414,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
                 gl.glPushMatrix();              
                 gl.glTranslatef(.5f * screenAspect, -.5f, 0);                  
                 gl.glRotatef(90f,0, 1, 0);               
-                gl.glDrawArrays(GL10.GL_LINES, 0, gridVertices.length / 3);
                 gl.glScalef(1 * boxdepth / 2, 1, 1);
                 gl.glDrawArrays(GL10.GL_LINES, 0, gridVertices.length / 3);
                 gl.glPopMatrix();
@@ -400,12 +446,11 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
                 gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
             }
 
-            /*
-            if (showWebcamPreview && webcamTexture != 0)
+            if (showWebcamPreview && textureIDs[2] != 0)
             {
                 gl.glPushMatrix();
-                gl.glTranslatef(-.5f * screenAspect, -.5f, -.5f));
-                gl.glScalef(0.2f, 0.2f, 0.2f));
+                gl.glTranslatef(-.5f * screenAspect, -.5f, -.5f);
+                gl.glScalef(0.2f, 0.2f, 0.2f);
 
                 gl.glEnable(GL10.GL_TEXTURE_2D);
                 gl.glBindTexture(GL10.GL_TEXTURE_2D, textureIDs[2]);
@@ -432,7 +477,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             	
                 gl.glDisable(GL10.GL_TEXTURE_2D);
             }
-            */
             
             if (showLines)
             {
@@ -559,6 +603,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             if (showHelp)
               RenderText(gl);  
             
+            isRendering = false;
+            
             /*
 			newFrameLock.waitUntilTrue(1000000);
 			newFrameLock.setValue(false);
@@ -583,7 +629,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glDisable(GL10.GL_DEPTH_TEST);
         gl.glEnable(GL10.GL_TEXTURE_2D);
         
-        textLineDepth = 700;
+        textLineDepth = 750;
         fnt.SetCursor(2, textLineDepth);
         fnt.SetPolyColor(1.0f, 1.0f, 1.0f);
         
