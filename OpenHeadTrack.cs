@@ -214,6 +214,8 @@ namespace OpenHeadTrack
                 DrawTextLine("Space - calibrate camera angle/center view");
                 DrawTextLine("R - Reposition the targets");
                 DrawTextLine("C - Toggle camera position above/below screen");
+                DrawTextLine("A/Z - Zoom in/out");
+                DrawTextLine("Arrow Keys - Change perspective");
                 DrawTextLine("esc - Quit");
                 DrawTextLine("");
 
