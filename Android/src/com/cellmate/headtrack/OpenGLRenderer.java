@@ -68,7 +68,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     static float cameraVerticaleAngle = 0; //begins assuming the camera is point straight forward
     static float relativeVerticalAngle = 0; //current head position view angle
-    static boolean cameraIsAboveScreen = false;//has no affect until zeroing and then is set automatically.
+    static boolean cameraIsAboveScreen = true;//has no affect until zeroing and then is set automatically.
 	/////////////////////////////////////////////////////
     // Numerical settings 
     /////////////////////////////////////////////////////
@@ -90,7 +90,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     boolean isLoaded = false;
     boolean badConfigFile = false;
     boolean showGrid = true;
-    boolean showHelp = true; // Press H to hide
+    boolean showHelp = false; // Press H to hide
     boolean showMouseCursor = false;
     boolean showTargets = true;
     boolean showLines = true;
@@ -143,35 +143,37 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 	
 	BooleanLock newFrameLock=new BooleanLock(false);
 	
+	
 	public void handlePressLeft()
 	{
-		headX -= 0.01f;
+		headX -= 0.007f;
 	}
 	
 	public void handlePressRight()
 	{
-		 headX += 0.01f;
+		 headX += 0.007f;
 	}
 	
 	public void handlePressUp()
 	{
-		 headY -= 0.01f;
+		 headY -= 0.007f;
 	}
 	
 	public void handlePressDown()
 	{
-		 headY += 0.01f;
+		 headY += 0.007f;
 	}
 		
 	public void handlePressA()
 	{
-		headDist -= 0.01f;
+		headDist -= 0.03f;
 	}
 	
 	public void handlePressZ()
 	{
-		headDist += 0.01f;
+		headDist += 0.03f;
 	}
+
 	
 	FloatBuffer makeFloatBuffer(float[] arr) {
 		ByteBuffer bb = ByteBuffer.allocateDirect(arr.length*4);
